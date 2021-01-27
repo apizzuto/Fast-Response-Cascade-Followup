@@ -19,16 +19,14 @@ parser.add_argument('--deltaT', type=float, default=None,
                     help='Time Window in seconds')
 parser.add_argument('--ntrials', type=int, default = 10000,
                         help='Trials')
-parser.add_argument('--smear', default=False, action='store_true',
-                    help='Include systematics by smearing norm. prob.')
 args = parser.parse_args()
 
+DONT NEED TO RUN BACKGROUND TRIALS AND WASTE THE COMPUTE YOU CAN JUST LOAD IN THE PRECOMPUTED TRIALS
 
-#skymaps_path = '/data/user/steinrob/millipede_scan_archive/fits_v3_prob_map/'
-#files = glob(skymaps_path + '*.fits')
-output_paths = '/data/user/apizzuto/fast_response_skylab/alert_event_followup/analysis_trials/bg/'
+output_paths = '/data/user/apizzuto/fast_response_skylab/fast-response/fast_response/cascades_results/bg/'
 
-skymap_files = glob('/data/ana/realtime/alert_catalog_v2/fits_files/Run1*.fits.gz')
+skymap_files = glob('/data/user/apizzuto/fast_response_skylab/fast-response/' \
+        + 'fast_response/cascades_results/skymaps/IceCube-Cascade_*.hp')
 
 skymap_fits, skymap_header = hp.read_map(skymap_files[args.index], h=True, verbose=False)
 skymap_header = {name: val for name, val in skymap_header}
