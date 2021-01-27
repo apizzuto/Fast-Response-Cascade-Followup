@@ -2,17 +2,14 @@
 
 import numpy as np
 import healpy as hp
-import os, sys, argparse
-from astropy.time import Time
-from astropy.time import TimeDelta
-from numpy.lib.recfunctions import append_fields
-from astropy.io import fits
+import argparse
 from glob import glob
+from astropy.time import Time
 import pickle
 
 from fast_response.FastResponseAnalysis import FastResponseAnalysis
 
-parser = argparse.ArgumentParser(description='Fast Response Analysis')
+parser = argparse.ArgumentParser(description='FRA Cascade background')
 parser.add_argument('--index', type=int,default=None,
                     help='skymap index')
 parser.add_argument('--deltaT', type=float, default=None,
@@ -21,45 +18,37 @@ parser.add_argument('--ntrials', type=int, default = 10000,
                         help='Trials')
 args = parser.parse_args()
 
-DONT NEED TO RUN BACKGROUND TRIALS AND WASTE THE COMPUTE YOU CAN JUST LOAD IN THE PRECOMPUTED TRIALS
-
 output_paths = '/data/user/apizzuto/fast_response_skylab/fast-response/fast_response/cascades_results/bg/'
+with open('/home/tgregoire/hese_cascades/archival_data.pkl', 'rb') as f: 
+        cascade_info = pickle.load(f, encoding='latin1') 
 
-skymap_files = glob('/data/user/apizzuto/fast_response_skylab/fast-response/' \
-        + 'fast_response/cascades_results/skymaps/IceCube-Cascade_*.hp')
-
-skymap_fits, skymap_header = hp.read_map(skymap_files[args.index], h=True, verbose=False)
-skymap_header = {name: val for name, val in skymap_header}
-ev_mjd = skymap_header['EVENTMJD']
-
-run_id = skymap_header['RUNID']
-event_id = skymap_header['EVENTID']
+event_mjd = cascade_info['mjd'][args.index]
+run_id = cascade_info['run'][args.index]
+event_id = cascade_info['event'][args.index]
 
 deltaT = args.deltaT / 86400.
 
-#skymap_fits = fits.open(files[args.index])[0]
-#event_mjd = skymap_fits.header['TIME_MJD']
-event_mjd = ev_mjd    #58000.000 #HARDCODE SO THAT THERE IS REAL DATA
 start_mjd = event_mjd - (deltaT / 2.)
 stop_mjd = event_mjd + (deltaT / 2.)
-
 start = Time(start_mjd, format='mjd').iso
 stop = Time(stop_mjd, format='mjd').iso
+
+cascade_healpy_file = '/data/user/apizzuto/fast_response_skylab/' \
+    + 'fast-response/fast_response/cascades_results/skymaps/IceCube-Cascade' \
+    + '_{}_{}.hp'.format(int(run_id), int(event_id))
 
 trials_per_sig = args.ntrials
 
 tsList_prior  = []
-tsList        = []
-nsList        = []
 nsList_prior  = []
-true_ns       = []
 ra            = []
 dec           = []
 
 seed_counter = 0
 
-f = FastResponseAnalysis(skymap_files[args.index], start, stop, save=False, 
-                            alert_event=True, smear=args.smear, alert_type='track')
+f = FastResponseAnalysis(cascade_healpy_file, 
+    start, stop, save=False, alert_event=True, smear=False, alert_type='cascade')
+
 inj = f.initialize_injector(gamma=2.5) #just put this here to initialize f.spatial_prior
 for jj in range(trials_per_sig):
     seed_counter += 1
@@ -68,24 +57,20 @@ for jj in range(trials_per_sig):
                 spatial_prior = f.spatial_prior, time_mask = [deltaT / 2., event_mjd],
                 pixel_scan = [f.nside, 4.0], inject = None)
         tsList_prior.append(val['TS_spatial_prior_0'].max())
-        tsList.append(val['TS'].max())
         max_prior   = np.argmax(val['TS_spatial_prior_0'])
-        max_noPrior = np.argmax(val['TS'])
         nsList_prior.append(val['nsignal'][max_prior])
-        nsList.append(val['nsignal'][max_noPrior])
         ra.append(val['ra'][max_prior])
         dec.append(val['dec'][max_prior])
     except ValueError:
         tsList_prior.append(0.0)
-        tsList.append(0.0)
         nsList_prior.append(0.0)
-        nsList.append(0.0)
         ra.append(0.0)
         dec.append(0.0)
 
-results = {'ts_prior': tsList_prior, 'ts': tsList, 'ns_prior': nsList_prior,
-            'ns': nsList, 'ra': ra, 'dec': dec}
+results = {'ts_prior': tsList_prior, 
+    'ns_prior': nsList_prior,
+    'ra': ra, 
+    'dec': dec}
 
-smear_str = 'smeared/' if args.smear else 'norm_prob/'
-with open(output_paths + smear_str + 'index_{}_run_{}_event_{}_time_{}.pkl'.format(args.index, run_id, event_id, args.deltaT), 'w') as fi:
+with open(output_paths + 'index_{}_run_{}_event_{}_time_{}.pkl'.format(args.index, run_id, event_id, args.deltaT), 'wb') as fi:
     pickle.dump(results, fi, protocol=pickle.HIGHEST_PROTOCOL)
