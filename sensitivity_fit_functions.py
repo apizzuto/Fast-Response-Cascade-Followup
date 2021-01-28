@@ -61,7 +61,7 @@ class CascadeCalculator():
     def background_distribution(self, index, key='ts_prior'):
         bg = np.load(self.bg_path + self.get_trials_string(index), 
             allow_pickle=True)
-        return bg_trials[key]
+        return bg[key]
 
     def background(self, index):
         bg_trials = np.load(self.bg_path + self.get_trials_string(index), 
@@ -81,8 +81,8 @@ class CascadeCalculator():
         signal_trials = np.load(self.sens_path + self.get_trials_string(index),
             allow_pickle=True)
         ret = {}
-        msk = np.array(signal_trials['mean_ninj']) == ns
-        for k, v in signal_trials.iteritems():
+        msk = np.array(signal_trials['true_ns']) == ns
+        for k, v in signal_trials.items():
             ret[k] = np.array(v)[msk]
         return ret
 
@@ -139,25 +139,28 @@ class CascadeCalculator():
             name = name.replace("_", " ")
         except:
             name = 'fit'
-        popt, pcov = curve_fit(fit_func, signal_fluxes, 
-            passing, sigma = errs, p0 = p0, maxfev=10000)
-        fit_points = fit_func(signal_fluxes, *popt)
+        signal_scale_fac = np.max(signal_fluxes)
+        signal_fls = signal_fluxes / signal_scale_fac
+        popt, pcov = curve_fit(fit_func, signal_fls, 
+            passing, sigma = errs, p0 = p0, maxfev=1000)
+        fit_points = fit_func(signal_fls, *popt)
         chi2 = np.sum((fit_points - passing)**2. / errs**2.)
         dof = len(fit_points) - len(popt)
-        xfit = np.linspace(np.min(signal_fluxes) - 0.5, np.max(signal_fluxes), 100)
+        xfit = np.linspace(np.min(signal_fls) - 0.5/signal_scale_fac, 
+            np.max(signal_fls), 100)
         yfit = fit_func(xfit, *popt)
         pval = sp.stats.chi2.sf(chi2, dof)
-        sens = xfit[find_nearest_idx(yfit, conf_lev)]
+        sens = xfit[find_nearest_idx(yfit, conf_lev)]*signal_scale_fac
         return {'popt': popt, 'pcov': pcov, 'chi2': chi2, 
-                'dof': dof, 'xfit': xfit, 'yfit': yfit, 
+                'dof': dof, 'xfit': xfit*signal_scale_fac, 'yfit': yfit, 
                 'name': name, 'pval':pval, 'ls':'--', 'sens': sens}
     
     def sensitivity_curve(self, index, threshold = 0.5, in_ns = True, with_err = True, trim=-1, ax = None, 
-                        p0 = None, fontsize = 16, conf_lev = 0.9, legend=True, text=True):
+                        p0 = None, fontsize = 13, conf_lev = 0.9, legend=True, text=True):
         signal_fluxes, passing, errs = self.pass_vs_inj(index, threshold=threshold, 
             in_ns=in_ns, with_err=with_err, trim=trim)
         fits, plist = [], []
-        for ffunc in [chi2cdf, erfunc, incomplete_gamma, fsigmoid]:
+        for ffunc in [erfunc, incomplete_gamma, fsigmoid]:
             try:
                 fits.append(self.sensitivity_fit(signal_fluxes, 
                     passing, errs, ffunc, p0=p0, conf_lev=conf_lev))
@@ -185,7 +188,7 @@ class CascadeCalculator():
                 ax.axvline(fit_dict['sens'], color = palette[-1], linewidth = 0.3, 
                     linestyle = '-.')
                 if text:
-                    ax.text(6, 0.5, r'Sens. = {:.2f}'.format(fit_dict['sens']))
+                    ax.text(np.median(signal_fluxes), 0.8, r'Sens. = {:.2f}'.format(fit_dict['sens']))
         if fits[best_fit_ind]['chi2'] / fits[best_fit_ind]['dof'] > 5:
             inter = np.interp(conf_lev, passing, signal_fluxes)
             ax.axhline(conf_lev, color = palette[-1], linewidth = 0.3, linestyle = '-.')
@@ -200,7 +203,7 @@ class CascadeCalculator():
         signal_fluxes, passing, errs = self.pass_vs_inj(index, threshold=threshold, 
             in_ns=in_ns, with_err=with_err, trim=trim)
         fits, plist = [], []
-        for ffunc in [chi2cdf, erfunc, incomplete_gamma, fsigmoid]:
+        for ffunc in [erfunc, incomplete_gamma, fsigmoid]:
             try:
                 fits.append(self.sensitivity_fit(signal_fluxes, 
                     passing, errs, ffunc, p0=p0, conf_lev=conf_lev))
@@ -284,7 +287,7 @@ class CascadeCalculator():
         if xlabel:
             ax.set_xlabel(r'$n_{\mathrm{inj}}$')
         ax.set_xlim(0., max(ninj))
-        ax.set_ylim(0., 80)
+        ax.set_ylim(0., max(ninj))
         if ylabel:
             ax.set_ylabel(r'$\hat{n}_{s}$')
         if show:
@@ -311,6 +314,20 @@ class CascadeCalculator():
                     spread[sig].append(0.0)
         return bias, spread
 
+    def plot_map_with_bg_scatter(self, ind):
+        skymap = self.cascade_info['skymap'][ind]
+        hp.mollview(skymap,
+            title=f"Run {casc_calc.cascade_info['run'][ind]} " \
+                    + f"Event {casc_calc.cascade_info['event'][ind]}",
+            unit='Prob.')
+        hp.graticule(dmer=30, dpar=30)
+        bg = self.background(ind)
+        zero_msk = np.asarray(bg['ts_prior']) == 0.
+        non_zero_ra = np.asarray(bg['ra'])[~zero_msk]
+        non_zero_dec = np.asarray(bg['dec'])[~zero_msk]
+        hp.projscatter(np.pi/2. - non_zero_dec, non_zero_ra, s=5,
+            marker='x', alpha=0.5, color = sns.xkcd_rgb['battleship grey'])
+
     def plot_zoom_from_map(self, ind, reso=1., cmap=None, draw_contour=True, ax=None, 
                         col_label= r'$\log_{10}$(prob.)'):
         s = self.cascade_info['skymap'][ind]
@@ -323,10 +340,12 @@ class CascadeCalculator():
             cmap = mpl.colors.ListedColormap(pdf_palette)
         skymap = np.log10(s)
         #min_color = np.min([0., 2.*max_color])
+        max_color = max(skymap)
+        min_color = max_color - 4.
         hp.gnomview(skymap, rot=(np.degrees(ra), np.degrees(dec), 0),
                         cmap=cmap,
-                        max=0.,
-                        min=-5.,
+                        max=max_color,
+                        min=min_color,
                         reso=reso,
                         title=title,
                         notext=True,
@@ -339,6 +358,15 @@ class CascadeCalculator():
         self.plot_labels(dec, ra, reso)
         self.plot_color_bar(cmap = cmap, labels = [min_color, max_color], 
             col_label = col_label)
+
+    def plot_zoom_with_bg_scatter(self, ind, reso=20):
+        self.plot_zoom_from_map(ind, reso=reso)
+        bg = self.background(ind)
+        zero_msk = np.asarray(bg['ts_prior']) == 0.
+        non_zero_ra = np.asarray(bg['ra'])[~zero_msk]
+        non_zero_dec = np.asarray(bg['dec'])[~zero_msk]
+        hp.projscatter(np.pi/2. - non_zero_dec, non_zero_ra,
+            marker='x', alpha=0.5, color = sns.xkcd_rgb['battleship grey'])
 
     def plot_labels(self, src_dec, src_ra, reso):
         """Add labels to healpy zoom"""
