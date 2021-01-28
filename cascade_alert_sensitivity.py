@@ -111,5 +111,5 @@ results = {'ts_prior': tsList_prior, 'ns_prior': nsList_prior,
             'gamma': gammaList, 'mean_ninj': mean_ninj, 'flux': flux_list,
             'true_ra': true_ras, 'true_dec': true_decs}
 
-with open(output_paths + 'index_{}_run_{}_event_{}_time_{}.pkl'.format(args.index, run_id, event_id, args.deltaT), 'wb') as fi:
+with open(output_paths + 'index_{}_run_{}_event_{}_time_{}.pkl'.format(args.index, int(run_id), int(event_id), int(args.deltaT)), 'wb') as fi:
     pickle.dump(results, fi, protocol=pickle.HIGHEST_PROTOCOL)

@@ -72,5 +72,5 @@ results = {'ts_prior': tsList_prior,
     'ra': ra, 
     'dec': dec}
 
-with open(output_paths + 'index_{}_run_{}_event_{}_time_{}.pkl'.format(args.index, run_id, event_id, args.deltaT), 'wb') as fi:
+with open(output_paths + 'index_{}_run_{}_event_{}_time_{}.pkl'.format(args.index, int(run_id), int(event_id), int(args.deltaT)), 'wb') as fi:
     pickle.dump(results, fi, protocol=pickle.HIGHEST_PROTOCOL)
