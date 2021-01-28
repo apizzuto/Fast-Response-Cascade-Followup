@@ -3,12 +3,12 @@ from glob import glob
 import numpy as np
 import pandas as pd
 
-error = '/scratch/apizzuto/novae/condor/error'
-output = '/scratch/apizzuto/novae/condor/output'
-log = '/scratch/apizzuto/novae/condor/log'
-submit = '/scratch/apizzuto/novae/condor/submit'
+error = '/scratch/apizzuto/fast_response/condor/error'
+output = '/scratch/apizzuto/fast_response/condor/output'
+log = '/scratch/apizzuto/fast_response/condor/log'
+submit = '/scratch/apizzuto/fast_response/condor/submit'
 
-script_base = '/data/user/apizzuto/fast_response_skylab/alert_event_followup/cascade_scripts'
+script_base = '/data/user/apizzuto/fast_response_skylab/alert_event_followup/cascade_scripts/'
 
 dagman_short_timescale = pycondor.Dagman(
     'FRA_cascade_short_timescale_sens', submit=submit, verbose=2
@@ -83,7 +83,7 @@ fits_jobs = pycondor.Job(
 for deltaT, bg_job, sens_job in [(1000., background_short_time_jobs, sens_short_time_jobs),
     (2.*86400., background_long_time_jobs, sens_long_time_jobs)]:
     for index in range(0, 62, 4):
-        bg_job.add_arg(f'--index={index} --deltaT={deltaT} --ntrails=5000')
+        bg_job.add_arg(f'--index={index} --deltaT={deltaT} --ntrials=5000')
         sens_job.add_arg(f'--index={index} --deltaT={deltaT} --ntrials=100')
         fits_jobs.add_arg(f'--index={index} --deltaT={deltaT} --ntrials=100')
   
