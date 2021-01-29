@@ -317,8 +317,8 @@ class CascadeCalculator():
     def plot_map_with_bg_scatter(self, ind):
         skymap = self.cascade_info['skymap'][ind]
         hp.mollview(skymap,
-            title=f"Run {casc_calc.cascade_info['run'][ind]} " \
-                    + f"Event {casc_calc.cascade_info['event'][ind]}",
+            title=f"Run {self.cascade_info['run'][ind]} " \
+                    + f"Event {self.cascade_info['event'][ind]}",
             unit='Prob.')
         hp.graticule(dmer=30, dpar=30)
         bg = self.background(ind)
