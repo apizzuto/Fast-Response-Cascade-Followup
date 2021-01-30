@@ -83,9 +83,11 @@ fits_jobs = pycondor.Job(
 for deltaT, bg_job, sens_job in [(1000., background_short_time_jobs, sens_short_time_jobs),
     (2.*86400., background_long_time_jobs, sens_long_time_jobs)]:
     for index in range(0, 62, 4):
-        bg_job.add_arg(f'--index={index} --deltaT={deltaT} --ntrials=5000')
-        sens_job.add_arg(f'--index={index} --deltaT={deltaT} --ntrials=100')
-        fits_jobs.add_arg(f'--index={index} --deltaT={deltaT} --ntrials=100')
+        if deltaT == 2.*86400. and index in [8, 16, 36, 44, 52]:
+            bg_job.add_arg(f'--index={index} --deltaT={deltaT} --ntrials=2000')
+            sens_job.add_arg(f'--index={index} --deltaT={deltaT} --ntrials=100')
+        if deltaT == 2.*86400. and index in [44]:
+            fits_jobs.add_arg(f'--index={index} --deltaT={deltaT} --ntrials=500')
   
 
 background_short_time_jobs.add_child(sens_short_time_jobs)
