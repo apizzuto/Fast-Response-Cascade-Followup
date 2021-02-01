@@ -12,6 +12,7 @@ import seaborn as sns
 import sys
 import healpy as hp
 import scipy.stats as st
+
 mpl.style.use('/home/apizzuto/Nova/scripts/novae_plots.mplstyle')
  
 palette = ['#7fc97f', '#beaed4', '#fdc086', '#ffff99', '#386cb0', '#f0027f']

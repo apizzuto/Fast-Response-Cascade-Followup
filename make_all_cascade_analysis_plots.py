@@ -3,6 +3,7 @@ import matplotlib as mpl
 mpl.use('agg')
 mpl.rcParams['axes.linewidth'] = 2.
 mpl.rcParams['figure.dpi'] = 120
+#mpl.rcParams['text.usetex'] = True
 import matplotlib.pyplot as plt
 from glob import glob
 import os, sys
@@ -12,6 +13,7 @@ from matplotlib.lines import Line2D
 import pickle
 
 import sensitivity_fit_functions as sff
+#mpl.style.use('')
 
 import seaborn as sns
 palette = ['#7fc97f', '#beaed4', '#fdc086', '#ffff99', '#386cb0', '#f0027f']
@@ -260,8 +262,9 @@ print("\nMaking sensitivity curve plots")
 for delta_t in [1000., 2.*86400.]:
     casc_calc = sff.CascadeCalculator(delta_t)
     casc_calc.sensitivity_curve(12, in_ns=False, trim=-5, text=False)
-    plt.xlabel("Passing fraction")
-    plt.ylabel("Injected flux")
+    plt.ylabel("Passing fraction")
+    plt.xlabel("Injected flux")
+    plt.title(r'$\Delta T = $' + f'{casc_calc.delta_t} seconds')
     for ftype in ['png', 'pdf']:
         plt.savefig(figure_base + f'individual_sensitivity_curve_{int(delta_t)}_seconds.{ftype}',
             bbox_inches='tight')
