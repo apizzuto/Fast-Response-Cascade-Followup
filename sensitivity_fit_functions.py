@@ -12,6 +12,7 @@ import seaborn as sns
 import sys
 import healpy as hp
 import scipy.stats as st
+mpl.style.use('/home/apizzuto/Nova/scripts/novae_plots.mplstyle')
  
 palette = ['#7fc97f', '#beaed4', '#fdc086', '#ffff99', '#386cb0', '#f0027f']
 
@@ -297,6 +298,8 @@ class CascadeCalculator():
         bias = {sig: [] for sig in sigs}; spread = {sig: [] for sig in sigs};
         levs = [50.-containment / 2., 50., 50.+containment / 2.]
         for ind in range(0, 62, 4):
+            if ind == 44:
+                continue
             try:
                 ninjs, contours = self.ns_fits_contours(ind, levs=levs)
             except:
