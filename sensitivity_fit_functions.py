@@ -372,6 +372,25 @@ class CascadeCalculator():
         hp.projscatter(np.pi/2. - non_zero_dec, non_zero_ra,
             marker='x', alpha=0.5, color = sns.xkcd_rgb['battleship grey'])
 
+    def background_opening_angle_psf(self, ind):
+        bg = self.background(ind)
+        zero_msk = np.asarray(bg['ts_prior']) == 0.
+        non_zero_ra = np.asarray(bg['ra'])[~zero_msk]
+        non_zero_dec = np.asarray(bg['dec'])[~zero_msk]
+        skymap = self.cascade_info['skymap'][ind]
+        ra, dec = self.loc_of_map(ind)
+        opening_angle = deltaPsi(non_zero_dec, non_zero_ra, dec, ra)*180./np.pi
+        plt.hist(opening_angle, density=True, bins=np.r_[0:60:30j],
+            histtype='step', label='BG trial hotspots', lw=3.)
+        skymap_theta, skymap_phi = hp.pix2ang(hp.get_nside(skymap), np.arange(len(skymap)))
+        skymap_dec = np.pi/2. - skymap_theta
+        skymap_del_psi = deltaPsi(skymap_dec, skymap_phi, dec, ra) * 180. / np.pi
+        plt.hist(skymap_del_psi, density=True, bins=np.r_[0:60:30j],
+            histtype='step', weights=skymap, label='Skymap', lw=3)
+        plt.xlabel(r'$\Delta \Psi_{bf}$ (deg.)')
+        plt.ylabel(r'Probability density (1/deg.)')
+        plt.legend(loc=1)
+
     def plot_labels(self, src_dec, src_ra, reso):
         """Add labels to healpy zoom"""
         fontsize = 20
@@ -408,3 +427,12 @@ class CascadeCalculator():
         cb.set_ticks([0., 1.])
         cb.set_ticklabels(labels)
         cb.update_ticks()
+
+def deltaPsi(dec1, ra1, dec2, ra2):
+    return deltaPsi2(np.sin(dec1), np.cos(dec1), np.sin(ra1), np.cos(ra1), np.sin(dec2), np.cos(dec2), np.sin(ra2), np.cos(ra2))
+
+def deltaPsi2(sDec1, cDec1, sRa1, cRa1, sDec2, cDec2, sRa2, cRa2):
+    tmp = cDec1*cRa1*cDec2*cRa2 + cDec1*sRa1*cDec2*sRa2 + sDec1*sDec2
+    tmp[tmp>1.] = 1.
+    tmp[tmp<-1.] = -1.
+    return np.arccos(tmp)
