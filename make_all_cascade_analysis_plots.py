@@ -322,6 +322,12 @@ for ftype in ['png', 'pdf']:
             bbox_inches='tight')
 plt.close()
 
+casc_calc.background_opening_angle_psf(ind)
+for ftype in ['png', 'pdf']:
+    plt.savefig(figure_base + f'bg_hotspot_distribution_{int(delta_t)}_seconds.{ftype}',
+            bbox_inches='tight')
+plt.close()
+
 print("\t Done with BG fits location plots")
 
 ###############################################################################
