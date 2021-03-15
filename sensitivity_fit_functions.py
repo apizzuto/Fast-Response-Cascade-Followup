@@ -149,7 +149,7 @@ class CascadeCalculator():
         chi2 = np.sum((fit_points - passing)**2. / errs**2.)
         dof = len(fit_points) - len(popt)
         xfit = np.linspace(np.min(signal_fls) - 0.5/signal_scale_fac, 
-            np.max(signal_fls), 100)
+            np.max(signal_fls), 5000)
         yfit = fit_func(xfit, *popt)
         pval = sp.stats.chi2.sf(chi2, dof)
         sens = xfit[find_nearest_idx(yfit, conf_lev)]*signal_scale_fac
